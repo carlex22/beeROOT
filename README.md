@@ -170,7 +170,3 @@ Multiple `Balancer` instances (different processes/machines) share the same
 pressure signal from the API — they self-balance without coordination.
 
 ---
-
-## License
-
-MIT
