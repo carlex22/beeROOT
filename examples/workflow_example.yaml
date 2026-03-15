@@ -1,0 +1,69 @@
+# beeROOT — workflow example
+# YAML-driven multi-agent flow.
+# Copy and adapt this file. The engine is 100% agnostic.
+
+workflow:
+  id:          my_workflow
+  wrapper_key: output       # wraps the extracted JSON in the result
+  id_key:      id           # field used as record identifier
+  start:       STEP1
+
+  tasks:
+
+    # ── STEP 1: Reasoning agent ───────────────────────────────────
+    - id:        STEP1
+      task_type: reasoning
+      provider:  openrouter
+      model:     openai/gpt-oss-120b
+      params:
+        reasoning_effort:      high
+        max_completion_tokens: 16000
+      prompt: |
+        Analyze the document carefully.
+        Identify the key entities, relationships, and facts.
+        Do NOT write JSON yet — think step by step.
+      transitions:
+        - target:    STEP2
+          condition: "not phase_failed and reasoning_chars > 100"
+        - target:    END_FAILURE
+
+    # ── STEP 2: Second reasoning agent (optional) ─────────────────
+    - id:        STEP2
+      task_type: reasoning
+      provider:  openrouter
+      model:     openai/gpt-oss-120b
+      params:
+        reasoning_effort:      high
+        max_completion_tokens: 16000
+      prompt: |
+        Based on your analysis, identify the final conclusions.
+        What is the outcome? What are the key causal relationships?
+        Still do NOT write JSON.
+      transitions:
+        - target:    STEP3
+          condition: "not phase_failed"
+        - target:    END_FAILURE
+
+    # ── STEP 3: Formatter (JSON writer) ──────────────────────────
+    - id:        STEP3
+      task_type: final
+      provider:  openrouter
+      model:     openai/gpt-oss-120b
+      params:
+        reasoning_effort:      medium
+        max_completion_tokens: 8000
+      prompt: |
+        Serialize the analysis above as valid JSON.
+        First character must be {  Last character must be }
+        Nothing else.
+      transitions:
+        - target:    END_SUCCESS
+          condition: "json_valid"
+        - target:    END_FAILURE
+
+    # ── Terminal nodes ────────────────────────────────────────────
+    - id:        END_SUCCESS
+      task_type: end
+
+    - id:        END_FAILURE
+      task_type: end
