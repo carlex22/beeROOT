@@ -1,0 +1,58 @@
+# beeROOT — example config
+# Copy and adapt this file. Each section maps to one module.
+# Sections are independent — only include what you need.
+
+# ── Balancer ─────────────────────────────────────────────────────
+balancer:
+  provider:     openrouter           # openrouter | groq
+  api_key:      ${API_KEY}           # env var reference
+  model:        openai/gpt-oss-120b
+  delay_factor: 1.0                  # stagger multiplier
+  pressure_window_sec: 120           # error tracking window (s)
+  timeout:      300                  # HTTP timeout per call (s)
+  params:                            # default payload params
+    reasoning_effort: high
+    max_completion_tokens: 16000
+
+
+# ── Flow ─────────────────────────────────────────────────────────
+# workflow.yaml defines the agent steps (see workflow_example.yaml)
+# schema.json   defines the structured output format
+# system_role.md is the system prompt
+
+
+# ── Chunks ───────────────────────────────────────────────────────
+chunks:
+  git_token:    ${GIT_TOKEN}
+  repo_slug:    your-org/your-data-repo   # GitHub or HuggingFace dataset repo
+  branch:       main
+  local_path:   ./repo_cache
+  input_dir:    chunks_input              # folder inside repo with input tar.gz
+  output_dir:   chunks_output             # folder inside repo for output tar.gz
+  state_csv:    tracking.csv
+  input_pattern: "chunk_input_*.tar.gz"
+  min_text_len:  0                        # 0 = no filter
+  text_fields:   []                       # fields summed for length check
+  batch_every_sec: 30
+  batch_every_n:   5
+  max_push_rpm:    25                     # HuggingFace limit: 30/min
+
+
+# ── Endpoint ─────────────────────────────────────────────────────
+endpoint:
+  input:
+    path:     ./data/input.jsonl     # .jsonl | .json | .tar.gz
+    id_field: id
+    limit:    ~                      # null = no limit
+
+  output:
+    path:   ./data/output.jsonl
+    mode:   append                   # append | overwrite
+    format: jsonl                    # jsonl | tar_gz
+
+  # Optional: push output to Git after write
+  # git:
+  #   token:      ${GIT_TOKEN}
+  #   repo_slug:  your-org/your-repo
+  #   branch:     main
+  #   local_path: ./repo_cache
